@@ -56,6 +56,7 @@ class Variable:
         stats: Computed summary statistics.
         context: Additional contextual notes about the variable.
         missing_codes: Codes that represent missing values.
+        suppress_numeric_stats: If True, hide mean/std/min/max in output.
     
     Example:
         >>> var = Variable(
@@ -72,6 +73,7 @@ class Variable:
     stats: VariableStats | None = None
     context: str = ""
     missing_codes: list[Any] = field(default_factory=list)
+    suppress_numeric_stats: bool = False
     
     def __repr__(self) -> str:
         """Concise representation for debugging."""

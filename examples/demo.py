@@ -42,7 +42,8 @@ with BookIt(
         value_labels={
             "gender": {1: "Male", 2: "Female"},
             "satisfaction": {1: "Very Dissatisfied", 2: "Dissatisfied", 3: "Neutral", 4: "Satisfied", 5: "Very Satisfied"},
-        }
+        },
+        suppress_numeric_stats=["gender", "respondent_id"],  # Hide mean/std for categorical vars
     )
     book.add_context("income", "Values are top-coded at $200,000. All values above this threshold are set to $200,000.")
     book.add_context("satisfaction", "This is a validated 5-point Likert scale measure.")

@@ -82,6 +82,7 @@ class BookIt:
         columns: list[str] | None = None,
         descriptions: dict[str, str] | None = None,
         value_labels: dict[str, dict[Any, str]] | None = None,
+        suppress_numeric_stats: list[str] | None = None,
     ) -> "BookIt":
         """Import variables from a DataFrame.
         
@@ -90,6 +91,8 @@ class BookIt:
             columns: List of column names to include. Defaults to all columns.
             descriptions: Dict mapping column names to descriptions.
             value_labels: Dict mapping column names to value label dicts.
+            suppress_numeric_stats: List of column names for which to hide
+                numeric statistics (mean, std, min, max) in output.
             
         Returns:
             self, for method chaining.
@@ -98,11 +101,13 @@ class BookIt:
             >>> book.from_dataframe(
             ...     df,
             ...     columns=["age", "income"],
-            ...     descriptions={"age": "Respondent age in years"}
+            ...     descriptions={"age": "Respondent age in years"},
+            ...     suppress_numeric_stats=["age"]  # Hide mean/std for age
             ... )
         """
         descriptions = descriptions or {}
         value_labels = value_labels or {}
+        suppress_numeric_stats = suppress_numeric_stats or []
         
         # Get column list
         module = type(df).__module__
@@ -131,6 +136,7 @@ class BookIt:
                 description=descriptions.get(col_name, ""),
                 dtype=get_dtype_string(series),
                 values=value_labels.get(col_name, {}),
+                suppress_numeric_stats=(col_name in suppress_numeric_stats),
             )
             
             # Compute statistics if enabled
@@ -148,6 +154,7 @@ class BookIt:
         dtype: str = "",
         values: dict[Any, str] | None = None,
         context: str = "",
+        suppress_numeric_stats: bool = False,
     ) -> "BookIt":
         """Manually add a variable to the codebook.
         
@@ -157,6 +164,7 @@ class BookIt:
             dtype: Data type string.
             values: Value labels for categorical variables.
             context: Additional contextual notes.
+            suppress_numeric_stats: If True, hide mean/std/min/max in output.
             
         Returns:
             self, for method chaining.
@@ -167,6 +175,7 @@ class BookIt:
             dtype=dtype,
             values=values or {},
             context=context,
+            suppress_numeric_stats=suppress_numeric_stats,
         )
         self.variables.append(var)
         return self

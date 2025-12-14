@@ -121,6 +121,10 @@ class PDFRenderer:
         self.pdf.add_page()
         self._toc_page = self.pdf.page_no()
         
+        # Create link target for "Back to TOC"
+        self._toc_link = self.pdf.add_link()
+        self.pdf.set_link(self._toc_link)
+        
         # Title
         self.pdf.set_font("Helvetica", "B", 18)
         self.pdf.set_text_color(*self.COLORS["primary"])
@@ -165,6 +169,14 @@ class PDFRenderer:
         self.pdf.set_link(link)  # Sets link destination to current position
         self._toc_entries.append((var.name, page_num, link))
         
+        # "Back to TOC" link in header (right-aligned)
+        if hasattr(self, '_toc_link'):
+            self.pdf.set_font("Helvetica", "I", 9)
+            self.pdf.set_text_color(*self.COLORS["accent"])
+            self.pdf.set_xy(self.pdf.w - 35, 10)  # Top right
+            self.pdf.cell(25, 5, "< Back to TOC", link=self._toc_link, align="R")
+            self.pdf.set_xy(10, 10)  # Reset position
+        
         # Variable name header
         self.pdf.set_font("Helvetica", "B", 16)
         self.pdf.set_text_color(*self.COLORS["primary"])
@@ -198,7 +210,7 @@ class PDFRenderer:
         
         # Statistics
         if var.stats and self.book.config.include_stats:
-            self._render_stats(var.stats)
+            self._render_stats(var.stats, var.suppress_numeric_stats)
         
         # Value labels
         if var.values:
@@ -214,8 +226,13 @@ class PDFRenderer:
         self.pdf.set_text_color(0, 0, 0)
         self.pdf.cell(0, 6, value, ln=True)
     
-    def _render_stats(self, stats: "VariableStats") -> None:
-        """Render statistics section."""
+    def _render_stats(self, stats: "VariableStats", suppress_numeric: bool = False) -> None:
+        """Render statistics section.
+        
+        Args:
+            stats: The VariableStats to render.
+            suppress_numeric: If True, hide mean/std/min/max.
+        """
         from ..variable import VariableStats
         
         self.pdf.ln(3)
@@ -234,14 +251,16 @@ class PDFRenderer:
             ("Unique", str(stats.unique)),
         ]
         
-        if stats.mean is not None:
-            row_data.append(("Mean", f"{stats.mean:.2f}"))
-        if stats.std is not None:
-            row_data.append(("Std Dev", f"{stats.std:.2f}"))
-        if stats.min is not None:
-            row_data.append(("Min", str(stats.min)))
-        if stats.max is not None:
-            row_data.append(("Max", str(stats.max)))
+        # Only add numeric stats if not suppressed
+        if not suppress_numeric:
+            if stats.mean is not None:
+                row_data.append(("Mean", f"{stats.mean:.2f}"))
+            if stats.std is not None:
+                row_data.append(("Std Dev", f"{stats.std:.2f}"))
+            if stats.min is not None:
+                row_data.append(("Min", str(stats.min)))
+            if stats.max is not None:
+                row_data.append(("Max", str(stats.max)))
         
         # Render as compact grid
         self.pdf.set_fill_color(*self.COLORS["light_bg"])
