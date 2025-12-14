@@ -1,0 +1,15 @@
+LICENSE
+README.md
+pyproject.toml
+src/bookit/__init__.py
+src/bookit/bookit.py
+src/bookit/config.py
+src/bookit/stats.py
+src/bookit/variable.py
+src/bookit.egg-info/PKG-INFO
+src/bookit.egg-info/SOURCES.txt
+src/bookit.egg-info/dependency_links.txt
+src/bookit.egg-info/requires.txt
+src/bookit.egg-info/top_level.txt
+src/bookit/renderers/__init__.py
+src/bookit/renderers/pdf.py
