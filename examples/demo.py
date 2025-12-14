@@ -25,7 +25,7 @@ output_path = "/workspaces/book-it/sample_codebook.pdf"
 with BookIt(
     "Sample Survey Codebook",
     output=output_path,
-    author="Research Team",
+    author="Lance Couzens",
     include_toc=True,
     include_title_page=True,
 ) as book:

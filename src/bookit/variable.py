@@ -74,6 +74,7 @@ class Variable:
     context: str = ""
     missing_codes: list[Any] = field(default_factory=list)
     suppress_numeric_stats: bool = False
+    chart_data: list[Any] | None = None  # Raw data for chart generation
     
     def __repr__(self) -> str:
         """Concise representation for debugging."""

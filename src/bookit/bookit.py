@@ -8,6 +8,27 @@ from .stats import compute_stats, get_dtype_string
 from .variable import Variable
 
 
+def _extract_chart_data(data: Any) -> list[Any]:
+    """Extract chart-ready data from various input types.
+    
+    Converts polars/pandas Series, numpy arrays, lists, and tuples
+    to a plain Python list for chart generation.
+    """
+    module = type(data).__module__
+    type_name = type(data).__name__
+    
+    if module.startswith("polars"):
+        return data.drop_nulls().to_list()
+    elif module.startswith("pandas"):
+        return data.dropna().tolist()
+    elif module.startswith("numpy") or type_name == "ndarray":
+        import numpy as np
+        arr = data[~np.isnan(data)] if data.dtype.kind == 'f' else data
+        return arr.tolist()
+    elif isinstance(data, (list, tuple)):
+        return [x for x in data if x is not None]
+    else:
+        return list(data)
 class BookIt:
     """Create a codebook documenting a DataFrame's variables.
     
@@ -40,6 +61,7 @@ class BookIt:
         include_toc: bool = True,
         include_title_page: bool = True,
         include_stats: bool = True,
+        include_charts: bool = True,
         config: CodebookConfig | None = None,
     ) -> None:
         """Initialize a new BookIt instance.
@@ -53,6 +75,7 @@ class BookIt:
             include_toc: Whether to include table of contents.
             include_title_page: Whether to include title page.
             include_stats: Whether to include summary statistics.
+            include_charts: Whether to include charts (bar/histogram).
             config: Full CodebookConfig object. If provided, overrides
                     individual settings above.
         """
@@ -66,6 +89,7 @@ class BookIt:
                 "include_toc": include_toc,
                 "include_title_page": include_title_page,
                 "include_stats": include_stats,
+                "include_charts": include_charts,
             }
             if date is not None:
                 kwargs["date"] = date
@@ -186,6 +210,10 @@ class BookIt:
         # Compute statistics from data if provided
         if data is not None and self.config.include_stats:
             var.stats = compute_stats(data)
+        
+        # Store chart data if charts are enabled
+        if data is not None and self.config.include_charts:
+            var.chart_data = _extract_chart_data(data)
         
         self.variables.append(var)
         return self

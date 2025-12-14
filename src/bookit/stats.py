@@ -86,7 +86,7 @@ def _compute_stats_polars(series: Any) -> VariableStats:
             col_name = series.name if series.name else "value"
             stats.top_values = [
                 (row[col_name], row["count"])
-                for row in value_counts.head(top_n).iter_rows(named=True)
+                for row in value_counts.iter_rows(named=True)
             ]
     
     return stats

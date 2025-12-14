@@ -15,6 +15,8 @@ class CodebookConfig:
         include_toc: Whether to include a table of contents.
         include_title_page: Whether to include a title page.
         include_stats: Whether to include summary statistics for variables.
+        include_charts: Whether to include charts (bar charts for categorical,
+                        histograms for numeric variables).
     
     Example:
         >>> config = CodebookConfig(
@@ -30,3 +32,4 @@ class CodebookConfig:
     include_toc: bool = True
     include_title_page: bool = True
     include_stats: bool = True
+    include_charts: bool = True

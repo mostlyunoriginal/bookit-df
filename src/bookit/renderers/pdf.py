@@ -148,11 +148,25 @@ class PDFRenderer:
         for name, page_num, link in self._toc_entries:
             # Variable name (clickable link)
             self.pdf.set_text_color(*self.COLORS["primary"])
-            self.pdf.cell(140, 6, name, link=link)
+            name_width = self.pdf.get_string_width(name)
+            self.pdf.cell(name_width + 2, 6, name, link=link)
+            
+            # Dotted leader line
+            page_str = str(page_num)
+            page_width = self.pdf.get_string_width(page_str)
+            dots_width = 180 - name_width - page_width - 10  # Available space for dots
+            if dots_width > 0:
+                self.pdf.set_text_color(*self.COLORS["border"])
+                # Calculate how many dots fit
+                dot_char = "."
+                dot_width = self.pdf.get_string_width(dot_char + " ")
+                num_dots = int(dots_width / dot_width)
+                dots = (dot_char + " ") * num_dots
+                self.pdf.cell(dots_width, 6, dots)
             
             # Page number
             self.pdf.set_text_color(*self.COLORS["secondary"])
-            self.pdf.cell(0, 6, str(page_num), align="R", ln=True)
+            self.pdf.cell(0, 6, page_str, align="R", ln=True)
         
         # Restore page
         self.pdf.page = current_page
@@ -212,9 +226,23 @@ class PDFRenderer:
         if var.stats and self.book.config.include_stats:
             self._render_stats(var.stats, var.suppress_numeric_stats)
         
+        # Chart placement depends on type:
+        # - Histograms: render before value labels
+        # - Bar charts: render after value labels
+        has_chart = var.chart_data and self.book.config.include_charts
+        is_bar_chart = has_chart and self._is_bar_chart_variable(var)
+        
+        # Histogram goes here (before value labels)
+        if has_chart and not is_bar_chart:
+            self._render_chart(var)
+        
         # Value labels
         if var.values:
             self._render_value_labels(var.values)
+        
+        # Bar chart goes after value labels
+        if has_chart and is_bar_chart:
+            self._render_chart(var)
     
     def _render_field(self, label: str, value: str) -> None:
         """Render a label-value pair."""
@@ -304,3 +332,135 @@ class PDFRenderer:
             self.pdf.cell(25, 6, str(code), fill=fill)
             self.pdf.set_font("Helvetica", "", 9)
             self.pdf.cell(0, 6, label, fill=fill, ln=True)
+    
+    def _is_bar_chart_variable(self, var: "Variable") -> bool:
+        """Determine if a variable should use a bar chart (vs histogram).
+        
+        Returns True for categorical variables, False for numeric.
+        """
+        from ..variable import Variable
+        
+        data = var.chart_data
+        if not data:
+            return False
+        
+        # Check if data is numeric
+        try:
+            [float(x) for x in data if x is not None]
+            is_numeric = True
+        except (ValueError, TypeError):
+            is_numeric = False
+        
+        # Use bar chart if: explicitly suppressed, has value labels, or non-numeric
+        return (
+            var.suppress_numeric_stats or 
+            var.values or
+            not is_numeric
+        )
+    
+    def _render_chart(self, var: "Variable") -> None:
+        """Render a chart for the variable.
+        
+        Bar chart for categorical variables, histogram for numeric.
+        """
+        import io
+        import tempfile
+        
+        import matplotlib
+        matplotlib.use('Agg')  # Non-interactive backend
+        import matplotlib.pyplot as plt
+        
+        from ..variable import Variable
+        
+        data = var.chart_data
+        if not data:
+            return
+        
+        # Check if data is numeric
+        try:
+            numeric_data = [float(x) for x in data if x is not None]
+            is_numeric = len(numeric_data) == len(data) and len(numeric_data) > 0
+        except (ValueError, TypeError):
+            is_numeric = False
+            numeric_data = []
+        
+        # Use bar chart for categorical, histogram for numeric
+        # Categorical if: explicitly suppressed, has value labels, or data is non-numeric
+        use_bar_chart = (
+            var.suppress_numeric_stats or 
+            var.values or  # Has value labels
+            not is_numeric  # Non-numeric data (strings, etc.)
+        )
+        
+        # Create figure with styling
+        fig, ax = plt.subplots(figsize=(5, 2.5))
+        
+        # Style settings
+        bar_color = '#4682B4'  # Steel blue (matches accent color)
+        
+        if use_bar_chart:
+            # Bar chart for categorical - only if <= 25 unique values
+            from collections import Counter
+            counts = Counter(data)
+            
+            # Skip bar chart if too many unique values
+            if len(counts) > 25:
+                plt.close(fig)
+                return
+            
+            # Sort by count descending, show all values
+            sorted_items = sorted(counts.items(), key=lambda x: -x[1])
+            labels = [str(item[0]) for item in sorted_items]
+            values = [item[1] for item in sorted_items]
+            
+            # Use value labels if available
+            if var.values:
+                labels = [var.values.get(item[0], str(item[0])) for item in sorted_items]
+            
+            # Truncate long labels
+            labels = [l[:20] + '...' if len(str(l)) > 20 else str(l) for l in labels]
+            
+            # Adjust figure height based on number of items
+            plt.close(fig)
+            fig_height = max(2.5, len(labels) * 0.25)
+            fig, ax = plt.subplots(figsize=(5, fig_height))
+            
+            bars = ax.barh(range(len(labels)), values, color=bar_color)
+            ax.set_yticks(range(len(labels)))
+            ax.set_yticklabels(labels, fontsize=8)
+            ax.invert_yaxis()  # Top to bottom
+            ax.set_xlabel('Count', fontsize=9)
+            
+            # Add percentage labels at end of bars
+            total = sum(values)
+            for bar, val in zip(bars, values):
+                pct = (val / total) * 100 if total > 0 else 0
+                ax.text(
+                    bar.get_width() + 0.3, 
+                    bar.get_y() + bar.get_height() / 2,
+                    f'{pct:.1f}%',
+                    va='center', fontsize=7, color='#666666'
+                )
+        else:
+            # Histogram for numeric
+            ax.hist(numeric_data, color=bar_color, edgecolor='white', alpha=0.8)
+            ax.set_xlabel('Value', fontsize=9)
+            ax.set_ylabel('Count', fontsize=9)
+        
+        # Clean styling
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.tick_params(axis='both', labelsize=8)
+        
+        plt.tight_layout()
+        
+        # Save to temporary file and embed
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+            plt.savefig(tmp.name, dpi=150, bbox_inches='tight', 
+                       facecolor='white', edgecolor='none')
+            plt.close(fig)
+            
+            # Add to PDF
+            self.pdf.ln(5)
+            self.pdf.image(tmp.name, x=15, w=100)
+            self.pdf.ln(3)
