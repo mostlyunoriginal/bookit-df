@@ -236,11 +236,7 @@ class PDFRenderer:
         if has_chart and not is_bar_chart:
             self._render_chart(var)
         
-        # Value labels
-        if var.values:
-            self._render_value_labels(var.values)
-        
-        # Bar chart goes after value labels
+        # Bar chart goes after stats
         if has_chart and is_bar_chart:
             self._render_chart(var)
     
@@ -298,22 +294,6 @@ class PDFRenderer:
             self.pdf.cell(35, 6, label, fill=fill)
             self.pdf.set_font("Helvetica", "", 9)
             self.pdf.cell(45, 6, value, fill=fill, ln=True)
-        
-        # Top values
-        if stats.top_values:
-            self.pdf.ln(3)
-            self.pdf.set_font("Helvetica", "B", 10)
-            self.pdf.set_text_color(*self.COLORS["primary"])
-            self.pdf.cell(0, 6, "Value Frequency", ln=True)
-            
-            self.pdf.set_font("Helvetica", "", 9)
-            self.pdf.set_text_color(0, 0, 0)
-            
-            for i, (val, count) in enumerate(stats.top_values):
-                fill = (i % 2 == 0)
-                self.pdf.set_fill_color(*self.COLORS["light_bg"])
-                self.pdf.cell(80, 5, str(val), fill=fill)
-                self.pdf.cell(30, 5, str(count), fill=fill, ln=True)
     
     def _render_value_labels(self, values: dict) -> None:
         """Render value labels section."""
@@ -398,6 +378,9 @@ class PDFRenderer:
         # Style settings
         bar_color = '#4682B4'  # Steel blue (matches accent color)
         
+        # Common embed width for both chart types
+        embed_width = 140  # mm
+        
         if use_bar_chart:
             # Bar chart for categorical - only if <= 25 unique values
             from collections import Counter
@@ -408,59 +391,74 @@ class PDFRenderer:
                 plt.close(fig)
                 return
             
+            plt.close(fig)
+            
             # Sort by count descending, show all values
             sorted_items = sorted(counts.items(), key=lambda x: -x[1])
-            labels = [str(item[0]) for item in sorted_items]
-            values = [item[1] for item in sorted_items]
+            raw_values = [item[0] for item in sorted_items]
+            bar_counts = [item[1] for item in sorted_items]
             
-            # Use value labels if available
-            if var.values:
-                labels = [var.values.get(item[0], str(item[0])) for item in sorted_items]
+            # Create labels in format "value (label)" or just "value"
+            labels = []
+            for val in raw_values:
+                if var.values and val in var.values:
+                    label = f"{val} ({var.values[val]})"
+                else:
+                    label = str(val)
+                # Truncate long labels
+                if len(label) > 30:
+                    label = label[:27] + '...'
+                labels.append(label)
             
-            # Truncate long labels
-            labels = [l[:20] + '...' if len(str(l)) > 20 else str(l) for l in labels]
+            # Dynamic figure height based on number of items
+            # 0.5 inches per bar ensures readable text at 140mm embed width
+            num_bars = len(labels)
+            fig_height = max(2, num_bars * 0.5)
+            fig, ax = plt.subplots(figsize=(7, fig_height))
             
-            # Adjust figure height based on number of items
-            plt.close(fig)
-            fig_height = max(2.5, len(labels) * 0.25)
-            fig, ax = plt.subplots(figsize=(5, fig_height))
-            
-            bars = ax.barh(range(len(labels)), values, color=bar_color)
+            bars = ax.barh(range(len(labels)), bar_counts, color=bar_color)
             ax.set_yticks(range(len(labels)))
-            ax.set_yticklabels(labels, fontsize=8)
+            ax.set_yticklabels(labels, fontsize=10)
             ax.invert_yaxis()  # Top to bottom
-            ax.set_xlabel('Count', fontsize=9)
+            ax.set_xlabel('Count', fontsize=10)
+            ax.tick_params(axis='both', labelsize=10)
             
-            # Add percentage labels at end of bars
-            total = sum(values)
-            for bar, val in zip(bars, values):
-                pct = (val / total) * 100 if total > 0 else 0
+            # Add labels at end of bars: n/N (pct%)
+            total = sum(bar_counts)
+            for bar, count in zip(bars, bar_counts):
+                pct = (count / total) * 100 if total > 0 else 0
+                label_text = f"{count}/{total} ({pct:.1f}%)"
                 ax.text(
                     bar.get_width() + 0.3, 
                     bar.get_y() + bar.get_height() / 2,
-                    f'{pct:.1f}%',
-                    va='center', fontsize=7, color='#666666'
+                    label_text,
+                    va='center', fontsize=9, color='#666666'
                 )
         else:
-            # Histogram for numeric
+            # Histogram for numeric - fixed size
+            plt.close(fig)
+            fig, ax = plt.subplots(figsize=(7, 3))  # Same width as bar charts
+            
             ax.hist(numeric_data, color=bar_color, edgecolor='white', alpha=0.8)
-            ax.set_xlabel('Value', fontsize=9)
-            ax.set_ylabel('Count', fontsize=9)
+            ax.set_xlabel('Value', fontsize=11)
+            ax.set_ylabel('Count', fontsize=11)
+            ax.tick_params(axis='both', labelsize=11)
+            # Rotate x-axis labels and right-align to tick marks
+            plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
         
         # Clean styling
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.tick_params(axis='both', labelsize=8)
         
         plt.tight_layout()
         
         # Save to temporary file and embed
         with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
-            plt.savefig(tmp.name, dpi=150, bbox_inches='tight', 
+            plt.savefig(tmp.name, dpi=200, bbox_inches='tight', 
                        facecolor='white', edgecolor='none')
             plt.close(fig)
             
-            # Add to PDF
+            # Add to PDF - same width for both chart types
             self.pdf.ln(5)
-            self.pdf.image(tmp.name, x=15, w=100)
+            self.pdf.image(tmp.name, x=15, w=embed_width)
             self.pdf.ln(3)

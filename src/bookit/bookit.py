@@ -198,6 +198,12 @@ class BookIt:
         if data is not None and not dtype:
             dtype = get_dtype_string(data)
         
+        # Auto-suppress numeric stats for string data types
+        if not suppress_numeric_stats and dtype:
+            string_types = ('str', 'string', 'object', 'Utf8', 'String')
+            if any(st.lower() in dtype.lower() for st in string_types):
+                suppress_numeric_stats = True
+        
         var = Variable(
             name=name,
             description=description,
