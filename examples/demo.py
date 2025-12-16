@@ -5,6 +5,48 @@ import sys
 sys.path.insert(0, "/workspaces/book-it/src")
 
 from bookit_df import BookIt
+from plotnine.data import mtcars
+
+with BookIt(
+    "mtcars Codebook",
+    output="mtcars_codebook.pdf",
+    author="Your Name"
+) as book:
+    book.from_dataframe(
+        mtcars,
+        descriptions={
+            "mpg": "Miles per gallon",
+            "cyl": "Number of cylinders",
+            "disp": "Displacement in cubic inches",
+            "hp": "Horsepower",
+            "drat": "Rear axle ratio",
+            "wt": "Weight in 1000 lbs",
+            "qsec": "1/4 mile time",
+            "vs": "Engine shape (0 = V-shaped, 1 = straight)",
+            "am": "Transmission (0 = automatic, 1 = manual)",
+            "gear": "Number of forward gears",
+            "carb": "Number of carburetors",
+        },
+        value_labels={
+            "vs": {0: "V-shaped", 1: "Straight"},
+            "am": {0: "Automatic", 1: "Manual"},
+            "gear": {
+                3: "3 gears",
+                4: "4 gears",
+                5: "5 gears",
+            },
+            "carb": {
+                1: "1 carburetor",
+                2: "2 carburetors",
+                3: "3 carburetors",
+                4: "4 carburetors",
+                6: "6 carburetors",
+                8: "8 carburetors",
+            },
+        },
+        suppress_numeric_stats=["am", "vs"],
+    )
+    book.add_context("mpg", "Fuel economy measure for the 1970s era vehicles.")
 
 # Create a sample DataFrame with various data types
 df = pl.DataFrame({

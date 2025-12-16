@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[docs]"
 
-      - name: Generate sample codebook
+      - name: Generate sample codebooks
         run: |
           python examples/demo.py
           mkdir -p docs/assets

@@ -73,6 +73,17 @@ with BookIt(
 
 ---
 
+## Output
+
+Here's what the generated codebook looks like:
+
+<iframe src="../../assets/mtcars_codebook.pdf" width="100%" height="600px" style="border: 1px solid #ccc; border-radius: 4px;"></iframe>
+
+!!! tip "Can't see the PDF?"
+    If the embedded viewer doesn't work, you can [download the PDF directly](../../assets/mtcars_codebook.pdf).
+
+---
+
 ## Key Concepts
 
 ### Categorical Variables
