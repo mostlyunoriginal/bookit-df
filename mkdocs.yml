@@ -1,7 +1,7 @@
 site_name: BookIt
-site_url: https://mostlyunoriginal.github.io/book-it/
-repo_url: https://github.com/mostlyunoriginal/book-it
-repo_name: mostlyunoriginal/book-it
+site_url: https://mostlyunoriginal.github.io/bookit-df/
+repo_url: https://github.com/mostlyunoriginal/bookit-df
+repo_name: mostlyunoriginal/bookit-df
 
 theme:
   name: material

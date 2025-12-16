@@ -4,7 +4,7 @@ import polars as pl
 import sys
 sys.path.insert(0, "/workspaces/book-it/src")
 
-from book_it import BookIt
+from bookit_df import BookIt
 
 # Create a sample DataFrame with various data types
 df = pl.DataFrame({

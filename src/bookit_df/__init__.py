@@ -5,7 +5,7 @@ in your polars or pandas DataFrames.
 
 Example:
     >>> import polars as pl
-    >>> from book_it import BookIt
+    >>> from bookit_df import BookIt
     >>>
     >>> df = pl.read_csv("data.csv")
     >>> with BookIt("My Codebook", output="codebook.pdf") as book:

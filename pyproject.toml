@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "book-it"
+name = "bookit-df"
 version = "0.1.0"
 description = "A codebook creation package for DataFrames"
 readme = "README.md"
@@ -43,9 +43,9 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/mostlyunoriginal/book-it"
-Documentation = "https://mostlyunoriginal.github.io/book-it/"
-Repository = "https://github.com/mostlyunoriginal/book-it"
+Homepage = "https://github.com/mostlyunoriginal/bookit-df"
+Documentation = "https://mostlyunoriginal.github.io/bookit-df/"
+Repository = "https://github.com/mostlyunoriginal/bookit-df"
 
 [tool.setuptools.packages.find]
 where = ["src"]

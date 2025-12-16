@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from fpdf import FPDF
 
 if TYPE_CHECKING:
-    from ..book_it import BookIt
+    from ..bookit import BookIt
 
 
 class CodebookPDF(FPDF):

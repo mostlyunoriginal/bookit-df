@@ -30,7 +30,7 @@ df = pl.DataFrame({
 The easiest way to create a codebook is with a context manager:
 
 ```python
-from book_it import BookIt
+from bookit_df import BookIt
 
 with BookIt(
     "Sample Survey Codebook",
