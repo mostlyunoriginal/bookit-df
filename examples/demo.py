@@ -33,6 +33,11 @@ with BookIt(
                 4: "4 gears",
                 5: "5 gears",
             },
+            "cyl": {
+                4: "4 cylinders",
+                6: "6 cylinders",
+                8: "8 cylinders",
+            },
             "carb": {
                 1: "1 carburetor",
                 2: "2 carburetors",

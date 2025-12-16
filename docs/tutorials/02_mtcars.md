@@ -26,7 +26,6 @@ Create a professional codebook with variable descriptions and value labels:
 
 ```python
 from bookit_df import BookIt
-from plotnine.data import mtcars
 
 with BookIt(
     "mtcars Codebook",
@@ -56,6 +55,11 @@ with BookIt(
                 4: "4 gears",
                 5: "5 gears",
             },
+            "cyl": {
+                4: "4 cylinders",
+                6: "6 cylinders",
+                8: "8 cylinders",
+            },
             "carb": {
                 1: "1 carburetor",
                 2: "2 carburetors",
@@ -65,7 +69,7 @@ with BookIt(
                 8: "8 carburetors",
             },
         },
-        suppress_numeric_stats=["am", "vs", "cyl", "gear", "carb"],
+        suppress_numeric_stats=["am", "vs"],
     )
     book.add_context("mpg", "Fuel economy measure for the 1970s era vehicles.")
 # PDF saved automatically on exit!
