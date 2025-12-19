@@ -10,6 +10,7 @@ Step-by-step guides for using BookIt.
 |----------|-------------|
 | [Getting Started](01_getting_started.md) | Create your first codebook with BookIt |
 | [Working with mtcars](02_mtcars.md) | Document the classic mtcars dataset |
+| [Probability Distributions](03_probability_distributions.md) | Add variables directly without a DataFrame |
 
 ---
 

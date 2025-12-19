@@ -12,12 +12,16 @@ if TYPE_CHECKING:
 class CodebookPDF(FPDF):
     """Custom FPDF subclass with page numbering in footer."""
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.font_family_name = "Helvetica"  # Default, can be overridden
+    
     def footer(self) -> None:
         """Add page number to footer (skip pages 1-2)."""
         if self.page_no() <= 2:
             return  # No page number on title and TOC pages
         self.set_y(-15)
-        self.set_font("Helvetica", "I", 9)
+        self.set_font(self.font_family_name, "I", 9)
         self.set_text_color(100, 100, 100)
         self.cell(0, 10, f"Page {self.page_no()}", align="C")
 
@@ -57,9 +61,32 @@ class PDFRenderer:
         self._toc_entries: list[tuple[str, int, str]] = []  # (name, page_num, link)
     
     def _setup_fonts(self) -> None:
-        """Configure fonts for the PDF."""
-        # Using built-in fonts for simplicity
-        self.pdf.set_font("Helvetica", size=10)
+        """Configure fonts for the PDF.
+        
+        Uses DejaVu fonts for full Unicode support (Greek letters, etc.).
+        Falls back to Helvetica if DejaVu is not available.
+        """
+        from pathlib import Path
+        
+        # Try to use DejaVu fonts for Unicode support
+        dejavu_path = Path("/usr/share/fonts/truetype/dejavu")
+        dejavu_regular = dejavu_path / "DejaVuSans.ttf"
+        dejavu_bold = dejavu_path / "DejaVuSans-Bold.ttf"
+        
+        if dejavu_regular.exists() and dejavu_bold.exists():
+            # Add DejaVu font family with full Unicode support
+            self.pdf.add_font("DejaVu", "", str(dejavu_regular))
+            self.pdf.add_font("DejaVu", "B", str(dejavu_bold))
+            self.pdf.add_font("DejaVu", "I", str(dejavu_regular))  # Use regular for italic
+            self.pdf.add_font("DejaVu", "BI", str(dejavu_bold))   # Use bold for bold-italic
+            self._font_family = "DejaVu"
+        else:
+            # Fallback to built-in fonts (limited Unicode)
+            self._font_family = "Helvetica"
+        
+        # Set font family for footer rendering
+        self.pdf.font_family_name = self._font_family
+        self.pdf.set_font(self._font_family, size=10)
     
     def render(self, path: str | Path) -> None:
         """Render the codebook to a PDF file.
@@ -89,7 +116,7 @@ class PDFRenderer:
         
         # Title
         self.pdf.set_y(80)
-        self.pdf.set_font("Helvetica", "B", 28)
+        self.pdf.set_font(self._font_family, "B", 28)
         self.pdf.set_text_color(*self.COLORS["primary"])
         self.pdf.cell(0, 15, self.book.config.title, align="C", ln=True)
         
@@ -101,18 +128,18 @@ class PDFRenderer:
         # Author
         if self.book.config.author:
             self.pdf.set_y(self.pdf.get_y() + 20)
-            self.pdf.set_font("Helvetica", "", 14)
+            self.pdf.set_font(self._font_family, "", 14)
             self.pdf.set_text_color(*self.COLORS["secondary"])
             self.pdf.cell(0, 10, self.book.config.author, align="C", ln=True)
         
         # Date
         self.pdf.set_y(self.pdf.get_y() + 5)
-        self.pdf.set_font("Helvetica", "I", 11)
+        self.pdf.set_font(self._font_family, "I", 11)
         self.pdf.cell(0, 10, self.book.config.date, align="C", ln=True)
         
         # Variable count
         self.pdf.set_y(self.pdf.get_y() + 30)
-        self.pdf.set_font("Helvetica", "", 11)
+        self.pdf.set_font(self._font_family, "", 11)
         var_text = f"{len(self.book.variables)} variables documented"
         self.pdf.cell(0, 10, var_text, align="C", ln=True)
     
@@ -126,7 +153,7 @@ class PDFRenderer:
         self.pdf.set_link(self._toc_link)
         
         # Title
-        self.pdf.set_font("Helvetica", "B", 18)
+        self.pdf.set_font(self._font_family, "B", 18)
         self.pdf.set_text_color(*self.COLORS["primary"])
         self.pdf.cell(0, 15, "Table of Contents", ln=True)
         self.pdf.ln(5)
@@ -143,7 +170,7 @@ class PDFRenderer:
         self.pdf.page = self._toc_page
         self.pdf.set_y(35)  # Below "Table of Contents" heading
         
-        self.pdf.set_font("Helvetica", "", 10)
+        self.pdf.set_font(self._font_family, "", 10)
         
         for name, page_num, link in self._toc_entries:
             # Variable name (clickable link)
@@ -185,14 +212,14 @@ class PDFRenderer:
         
         # "Back to TOC" link in header (right-aligned)
         if hasattr(self, '_toc_link'):
-            self.pdf.set_font("Helvetica", "I", 9)
+            self.pdf.set_font(self._font_family, "I", 9)
             self.pdf.set_text_color(*self.COLORS["accent"])
             self.pdf.set_xy(self.pdf.w - 35, 10)  # Top right
             self.pdf.cell(25, 5, "< Back to TOC", link=self._toc_link, align="R")
             self.pdf.set_xy(10, 10)  # Reset position
         
         # Variable name header
-        self.pdf.set_font("Helvetica", "B", 16)
+        self.pdf.set_font(self._font_family, "B", 16)
         self.pdf.set_text_color(*self.COLORS["primary"])
         self.pdf.cell(0, 10, var.name, ln=True)
         
@@ -204,7 +231,7 @@ class PDFRenderer:
         
         # Description
         if var.description:
-            self.pdf.set_font("Helvetica", "", 11)
+            self.pdf.set_font(self._font_family, "", 11)
             self.pdf.set_text_color(0, 0, 0)
             self.pdf.multi_cell(0, 6, var.description)
             self.pdf.ln(3)
@@ -217,7 +244,7 @@ class PDFRenderer:
         if var.context:
             self.pdf.ln(3)
             self.pdf.set_fill_color(*self.COLORS["light_bg"])
-            self.pdf.set_font("Helvetica", "I", 10)
+            self.pdf.set_font(self._font_family, "I", 10)
             self.pdf.set_text_color(*self.COLORS["secondary"])
             self.pdf.multi_cell(0, 6, f"Note: {var.context}", fill=True)
             self.pdf.ln(3)
@@ -242,11 +269,11 @@ class PDFRenderer:
     
     def _render_field(self, label: str, value: str) -> None:
         """Render a label-value pair."""
-        self.pdf.set_font("Helvetica", "B", 10)
+        self.pdf.set_font(self._font_family, "B", 10)
         self.pdf.set_text_color(*self.COLORS["secondary"])
         self.pdf.cell(30, 6, f"{label}:")
         
-        self.pdf.set_font("Helvetica", "", 10)
+        self.pdf.set_font(self._font_family, "", 10)
         self.pdf.set_text_color(0, 0, 0)
         self.pdf.cell(0, 6, value, ln=True)
     
@@ -260,12 +287,12 @@ class PDFRenderer:
         from ..variable import VariableStats
         
         self.pdf.ln(3)
-        self.pdf.set_font("Helvetica", "B", 11)
+        self.pdf.set_font(self._font_family, "B", 11)
         self.pdf.set_text_color(*self.COLORS["primary"])
         self.pdf.cell(0, 8, "Summary Statistics", ln=True)
         
         # Stats table
-        self.pdf.set_font("Helvetica", "", 10)
+        self.pdf.set_font(self._font_family, "", 10)
         self.pdf.set_text_color(0, 0, 0)
         
         row_data = [
@@ -290,27 +317,27 @@ class PDFRenderer:
         self.pdf.set_fill_color(*self.COLORS["light_bg"])
         for i, (label, value) in enumerate(row_data):
             fill = (i % 2 == 0)
-            self.pdf.set_font("Helvetica", "B", 9)
+            self.pdf.set_font(self._font_family, "B", 9)
             self.pdf.cell(35, 6, label, fill=fill)
-            self.pdf.set_font("Helvetica", "", 9)
+            self.pdf.set_font(self._font_family, "", 9)
             self.pdf.cell(45, 6, value, fill=fill, ln=True)
     
     def _render_value_labels(self, values: dict) -> None:
         """Render value labels section."""
         self.pdf.ln(3)
-        self.pdf.set_font("Helvetica", "B", 11)
+        self.pdf.set_font(self._font_family, "B", 11)
         self.pdf.set_text_color(*self.COLORS["primary"])
         self.pdf.cell(0, 8, "Value Labels", ln=True)
         
-        self.pdf.set_font("Helvetica", "", 10)
+        self.pdf.set_font(self._font_family, "", 10)
         self.pdf.set_text_color(0, 0, 0)
         
         for i, (code, label) in enumerate(values.items()):
             fill = (i % 2 == 0)
             self.pdf.set_fill_color(*self.COLORS["light_bg"])
-            self.pdf.set_font("Helvetica", "B", 9)
+            self.pdf.set_font(self._font_family, "B", 9)
             self.pdf.cell(25, 6, str(code), fill=fill)
-            self.pdf.set_font("Helvetica", "", 9)
+            self.pdf.set_font(self._font_family, "", 9)
             self.pdf.cell(0, 6, label, fill=fill, ln=True)
     
     def _is_bar_chart_variable(self, var: "Variable") -> bool:

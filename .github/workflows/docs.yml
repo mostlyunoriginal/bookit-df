@@ -30,10 +30,9 @@ jobs:
 
       - name: Generate sample codebooks
         run: |
-          python examples/demo.py
-          mkdir -p docs/assets
-          cp sample_codebook.pdf docs/assets/
-          cp mtcars_codebook.pdf docs/assets/
+          python examples/generate_sample_codebook.py
+          python examples/generate_mtcars_codebook.py
+          python examples/generate_distributions_codebook.py
 
       - name: Build docs
         run: mkdocs build

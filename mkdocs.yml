@@ -52,5 +52,6 @@ nav:
       - Overview: tutorials/index.md
       - Getting Started: tutorials/01_getting_started.md
       - Working with mtcars: tutorials/02_mtcars.md
+      - Probability Distributions: tutorials/03_probability_distributions.md
   - API Reference:
       - Core: reference/core.md
